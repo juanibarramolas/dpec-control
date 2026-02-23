@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1B5E20">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DPEC 5 Reglas">
+    <title>DPEC - Control 5 Reglas de Oro</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/logo-dpec.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --dpec-verde-oscuro: #1B5E20;
+            --dpec-verde-medio: #2E7D32;
+            --dpec-verde-claro: #4CAF50;
+            --dpec-verde-muy-claro: #E8F5E9;
+            --dpec-negro: #212121;
+            --dpec-gris-oscuro: #424242;
+            --dpec-gris-medio: #757575;
+            --dpec-gris-claro: #BDBDBD;
+            --dpec-blanco: #FFFFFF;
+            --dpec-rojo: #D32F2F;
+            --dpec-naranja: #F57C00;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: var(--dpec-negro);
+            line-height: 1.5;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        .splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--dpec-verde-oscuro) 0%, var(--dpec-verde-medio) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .splash.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .splash-content {
+            text-align: center;
+            color: var(--dpec-blanco);
+            padding: 2rem;
+        }
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 1.5rem;
+            background: var(--dpec-blanco);
+            border-radius: 50%;
+            padding: 10px;
+            object-fit: contain;
+        }
+        .splash h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .splash p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin: 2rem auto 0;
+            overflow: hidden;
+            position: relative;
+        }
+        .loading-bar::after {
+            content: '';
+            position: absolute;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: var(--dpec-blanco);
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { left: -50%; }
+            100% { left: 100%; }
+        }
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            display: none;
+        }
+        .app.visible {
+            display: flex;
+        }
+        .header {
+            background: var(--dpec-verde-oscuro);
+            color: var(--dpec-blanco);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .header-logo {
+            width: 40px;
+            height: 40px;
+            background: var(--dpec-blanco);
+            border-radius: 50%;
+            padding: 3px;
+            object-fit: contain;
+        }
+        .header-title h1 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .header-subtitle {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            display: block;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .user-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .btn-icon {
+            background: transparent;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: var(--dpec-blanco);
+        }
+        .screen {
+            display: none;
+            flex: 1;
+            animation: fadeIn 0.3s ease;
+            padding-bottom: 80px;
+        }
+        .screen.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .login-container {
+            min-height: calc(100vh - 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--dpec-verde-muy-claro) 0%, var(--dpec-blanco) 100%);
+        }
+        .login-card {
+            background: var(--dpec-blanco);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            background: var(--dpec-verde-muy-claro);
+            border-radius: 50%;
+            padding: 8px;
+            object-fit: contain;
+        }
+        .login-card h2 {
+            color: var(--dpec-verde-oscuro);
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dpec-gris-oscuro);
+            font-size: 0.85rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--dpec-gris-claro);
+            border-radius: 8px;
+            font-size: 1rem;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--dpec-blanco);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--dpec-verde-medio);
+        }
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2.5rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            -webkit-appearance: none;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+        }
+        .btn-primary {
+            background: var(--dpec-verde-oscuro);
+            color: var(--dpec-blanco);
+        }
+        .btn-secondary {
+            background: var(--dpec-gris-claro);
+            color: var(--dpec-negro);
+        }
+        .btn-success {
+            background: var(--dpec-verde-claro);
+            color: var(--dpec-blanco);
+        }
+        .btn-block {
+            width: 100%;
+        }
+        .btn-large {
+            padding: 1rem;
+            font-size: 1.1rem;
+            width: 100%;
+            margin: 1rem 0;
+        }
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        .btn-text {
+            background: transparent;
+            color: var(--dpec-verde-oscuro);
+            padding: 0.5rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background: var(--dpec-blanco);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border: 1px solid #e0e0e0;
+        }
+        .card h4 {
+            color: var(--dpec-verde-oscuro);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            border-bottom: 2px solid var(--dpec-verde-muy-claro);
+            padding-bottom: 0.5rem;
+        }
+        .welcome-card {
+            background: linear-gradient(135deg, var(--dpec-verde-oscuro) 0%, var(--dpec-verde-medio) 100%);
+            color: var(--dpec-blanco);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .welcome-card.supervisor {
+            background: linear-gradient(135deg, var(--dpec-gris-oscuro) 0%, var(--dpec-negro) 100%);
+        }
+        .welcome-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .stat-card {
+            background: var(--dpec-blanco);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border-left: 4px solid var(--dpec-verde-claro);
+        }
+        .stat-number {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dpec-verde-oscuro);
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--dpec-gris-medio);
+        }
+        .gps-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--dpec-verde-muy-claro);
+            border-radius: 8px;
+            border: 2px solid var(--dpec-verde-claro);
+            font-size: 0.9rem;
+        }
+        .gps-status.error {
+            background: #ffebee;
+            border-color: var(--dpec-rojo);
+            color: var(--dpec-rojo);
+        }
+        .reglas-card {
+            background: var(--dpec-blanco);
+            border: 2px solid var(--dpec-verde-oscuro);
+        }
+        .reglas-info {
+            background: #fff3e0;
+            border-left: 4px solid var(--dpec-naranja);
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: var(--dpec-gris-oscuro);
+        }
+        .reglas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .regla-item {
+            border: 2px solid var(--dpec-gris-claro);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .regla-item.active {
+            border-color: var(--dpec-verde-claro);
+        }
+        .regla-item.completed {
+            border-color: var(--dpec-verde-claro);
+            background: var(--dpec-verde-muy-claro);
+        }
+        .regla-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .regla-number {
+            width: 32px;
+            height: 32px;
+            background: var(--dpec-verde-oscuro);
+            color: var(--dpec-blanco);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .regla-title h5 {
+            color: var(--dpec-negro);
+            font-size: 0.9rem;
+            margin-bottom: 0.125rem;
+        }
+        .regla-title p {
+            color: var(--dpec-gris-medio);
+            font-size: 0.8rem;
+        }
+        .regla-status {
+            margin-left: auto;
+            font-size: 1.1rem;
+        }
+        .regla-content {
+            padding: 1rem;
+            display: none;
+        }
+        .regla-item.active .regla-content {
+            display: block;
+        }
+        .foto-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .foto-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .foto-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: #f5f5f5;
+            border: 2px dashed var(--dpec-gris-claro);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .foto-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .foto-label span {
+            color: var(--dpec-gris-oscuro);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .foto-label small {
+            color: var(--dpec-gris-medio);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .foto-preview {
+            width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border: 2px solid var(--dpec-verde-claro);
+            display: none;
+        }
+        .foto-preview.visible {
+            display: block;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.75rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--dpec-verde-oscuro);
+        }
+        .form-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e0e0e0;
+        }
+        .ordenes-list {
+            margin-top: 1.5rem;
+        }
+        .ordenes-list h4 {
+            color: var(--dpec-gris-oscuro);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        .orden-item {
+            background: var(--dpec-blanco);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border-left: 4px solid var(--dpec-verde-claro);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .orden-item.pending {
+            border-left-color: var(--dpec-naranja);
+        }
+        .orden-info h5 {
+            color: var(--dpec-negro);
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+        .orden-meta {
+            font-size: 0.8rem;
+            color: var(--dpec-gris-medio);
+        }
+        .orden-status {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-pending {
+            background: #fff3e0;
+            color: var(--dpec-naranja);
+        }
+        .status-synced {
+            background: var(--dpec-verde-muy-claro);
+            color: var(--dpec-verde-oscuro);
+        }
+        .filtros-card {
+            background: #f5f5f5;
+        }
+        .filtros-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .charts-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+        .ordenes-supervisor-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal.visible {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--dpec-blanco);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--dpec-verde-oscuro);
+            color: var(--dpec-blanco);
+        }
+        .modal-header h3 {
+            font-size: 1.1rem;
+        }
+        .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        .detalle-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .detalle-item {
+            display: flex;
+            flex-direction: column;
+            padding: 0.625rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .detalle-label {
+            font-size: 0.7rem;
+            color: var(--dpec-gris-medio);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .detalle-value {
+            color: var(--dpec-negro);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .detalle-fotos {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        @media (min-width: 480px) {
+            .detalle-fotos {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .detalle-foto {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .detalle-foto img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        .detalle-foto-info {
+            padding: 0.625rem;
+            background: #fafafa;
+        }
+        .detalle-foto-info h6 {
+            color: var(--dpec-verde-oscuro);
+            margin-bottom: 0.125rem;
+            font-size: 0.85rem;
+        }
+        .detalle-foto-info p {
+            font-size: 0.7rem;
+            color: var(--dpec-gris-medio);
+            font-family: monospace;
+        }
+        .toast-container {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            left: 1rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .toast {
+            background: var(--dpec-negro);
+            color: var(--dpec-blanco);
+            padding: 0.875rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .toast.success {
+            background: var(--dpec-verde-oscuro);
+        }
+        .toast.error {
+            background: var(--dpec-rojo);
+        }
+        .toast.warning {
+            background: var(--dpec-naranja);
+        }
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .offline-indicator {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--dpec-naranja);
+            color: var(--dpec-blanco);
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            z-index: 999;
+            display: none;
+        }
+        .offline-indicator.visible {
+            display: block;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .error-message {
+            color: var(--dpec-rojo);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #ffebee;
+            border-radius: 4px;
+        }
+        .empty-state {
+            text-align: center;
+            color: var(--dpec-gris-medio);
+            padding: 2rem;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        @supports (-webkit-touch-callout: none) {
+            .splash, .modal {
+                height: -webkit-fill-available;
+            }
+            .app {
+                min-height: -webkit-fill-available;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="splash" class="splash">
+        <div class="splash-content">
+            <img src="assets/logo-dpec.png" alt="DPEC" class="splash-logo" onerror="this.style.display='none'">
+            <h1>Control 5 Reglas de Oro</h1>
+            <p>Dirección Provincial de Energía de Corrientes</p>
+            <div class="loading-bar"></div>
+        </div>
+    </div>
+
+    <div id="app" class="app">
+        <header class="header">
+            <div class="header-left">
+                <img src="assets/logo-dpec.png" alt="DPEC" class="header-logo" onerror="this.style.display='none'">
+                <div class="header-title">
+                    <h1>5 Reglas de Oro</h1>
+                    <span class="header-subtitle">Control de Seguridad</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span id="userName" class="user-name"></span>
+                <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">🚪</button>
+            </div>
+        </header>
+
+        <section id="loginScreen" class="screen active">
+            <div class="login-container">
+                <div class="login-card">
+                    <img src="assets/logo-dpec.png" alt="DPEC" class="login-logo" onerror="this.style.display='none'">
+                    <h2>Iniciar Sesión</h2>
+                    
+                    <div class="form-group">
+                        <label>Tipo de Usuario</label>
+                        <select id="userType" class="form-control">
+                            <option value="">Seleccionar...</option>
+                            <option value="empleado">Empleado</option>
+                            <option value="supervisor">Supervisor</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sector</label>
+                        <select id="sector" class="form-control">
+                            <option value="">Seleccionar sector...</option>
+                            <option value="guardia_reclamos">Guardia de Reclamos</option>
+                            <option value="subterraneos">Subterráneos</option>
+                            <option value="redes_aereas">Redes Aéreas</option>
+                            <option value="distribucion_mt">Distribución MT</option>
+                            <option value="mantenimiento">Mantenimiento</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden" id="nombreGroup">
+                        <label>Nombre Completo</label>
+                        <input type="text" id="userNombre" class="form-control" placeholder="Ingrese su nombre">
+                    </div>
+
+                    <button id="loginBtn" class="btn btn-primary btn-block">Ingresar</button>
+
+                    <div id="loginError" class="error-message hidden"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboardEmpleado" class="screen">
+            <div class="container">
+                <div class="welcome-card">
+                    <h3>Bienvenido, <span id="empNombre"></span></h3>
+                    <p>Sector: <strong id="empSector"></strong></p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-number" id="ordenesPendientes">0</span>
+                        <span class="stat-label">Pendientes sync</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="ordenesCompletadas">0</span>
+                        <span class="stat-label">Completadas hoy</span>
+                    </div>
+                </div>
+
+                <button id="nuevaOrdenBtn" class="btn btn-success btn-large">
+                    <span>➕</span>
+                    Nueva Orden de Trabajo
+                </button>
+
+                <div class="ordenes-list" id="ordenesList">
+                    <h4>Mis Órdenes Recientes</h4>
+                    <div id="ordenesContainer">
+                        <p class="empty-state">No hay órdenes registradas</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ordenForm" class="screen">
+            <div class="container">
+                <div class="form-header" style="margin-bottom: 1rem;">
+                    <button id="backToDashboard" class="btn btn-text">← Volver</button>
+                    <h3 style="color: var(--dpec-verde-oscuro); margin-top: 0.5rem;">Nueva Orden de Trabajo</h3>
+                </div>
+
+                <form id="ordenFormElement">
+                    <div class="card">
+                        <h4>Datos de la Orden</h4>
+                        
+                        <div class="form-group">
+                            <label>Número de Orden (OT)</label>
+                            <input type="text" id="numeroOT" class="form-control" placeholder="Ej: OT-2024-001" required>
+                            <button type="button" id="generarOT" class="btn btn-small btn-secondary">Generar automático</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ubicación GPS</label>
+                            <div id="gpsStatus" class="gps-status">
+                                <span>📍</span>
+                                <span id="gpsText">Obteniendo ubicación...</span>
+                            </div>
+                            <input type="hidden" id="latitud">
+                            <input type="hidden" id="longitud">
+                            <input type="hidden" id="gpsTimestamp">
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h4>Tipo de Trabajo</h4>
+                        
+                        <div class="form-group">
+                            <label>Trabajo a realizar</label>
+                            <select id="tipoTrabajo" class="form-control" required>
+                                <option value="">Seleccionar trabajo...</option>
+                                <option value="cambio_aislador">Cambio de Aislador</option>
+                                <option value="cambio_seccionador">Cambio de Seccionador</option>
+                                <option value="poda">Poda</option>
+                                <option value="reparacion_poste">Reparación de Poste</option>
+                                <option value="cambio_transformador">Cambio de Transformador</option>
+                                <option value="empalme_cable">Empalme de Cable</option>
+                                <option value="revision_conexion">Revisión de Conexión</option>
+                                <option value="mantenimiento_preventivo">Mantenimiento Preventivo</option>
+                                <option value="otros">Otros (especificar)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group hidden" id="otrosDescripcionGroup">
+                            <label>Descripción del trabajo</label>
+                            <textarea id="otrosDescripcion" class="form-control" rows="3" placeholder="Describa el trabajo a realizar..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="card reglas-card">
+                        <h4>5 Reglas de Oro - Verificación Fotográfica</h4>
+                        <p class="reglas-info">Todas las fotos deben tomarse en el lugar. No se permite acceso a galería.</p>
+
+                        <div class="reglas-container">
+                            <div class="regla-item active" data-regla="1">
+                                <div class="regla-header">
+                                    <span class="regla-number">1</span>
+                                    <div class="regla-title">
+                                        <h5>Corte Visible</h5>
+                                        <p>Desconexión visible de la energía</p>
+                                    </div>
+                                    <span class="regla-status" id="status1">⏳</span>
+                                </div>
+                                <div class="regla-content">
+                                    <div class="foto-container" id="container1">
+                                        <input type="file" id="foto1" accept="image/*" capture="environment" class="foto-input" data-regla="1">
+                                        <label for="foto1" class="foto-label">
+                                            <span class="foto-icon">📷</span>
+                                            <span>Tomar foto</span>
+                                            <small>Cámara solo, no galería</small>
+                                        </label>
+                                        <img id="preview1" class="foto-preview">
+                                        <canvas id="canvas1" class="hidden"></canvas>
+                                    </div>
+                                    <div class="regla-check">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="cumple1" required>
+                                            <span>¿Cumple con la regla?</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="regla-item" data-regla="2">
+                                <div class="regla-header">
+                                    <span class="regla-number">2</span>
+                                    <div class="regla-title">
+                                        <h5>Bloqueo y Señalización</h5>
+                                        <p>Impedir la reconexión accidental</p>
+                                    </div>
+                                    <span class="regla-status" id="status2">⏳</span>
+                                </div>
+                                <div class="regla-content">
+                                    <div class="foto-container" id="container2">
+                                        <input type="file" id="foto2" accept="image/*" capture="environment" class="foto-input" data-regla="2">
+                                        <label for="foto2" class="foto-label">
+                                            <span class="foto-icon">📷</span>
+                                            <span>Tomar foto</span>
+                                        </label>
+                                        <img id="preview2" class="foto-preview">
+                                        <canvas id="canvas2" class="hidden"></canvas>
+                                    </div>
+                                    <div class="regla-check">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="cumple2" required>
+                                            <span>¿Cumple con la regla?</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="regla-item" data-regla="3">
+                                <div class="regla-header">
+                                    <span class="regla-number">3</span>
+                                    <div class="regla-title">
+                                        <h5>Verificación Ausencia de Tensión</h5>
+                                        <p>Comprobar que no hay energía</p>
+                                    </div>
+                                    <span class="regla-status" id="status3">⏳</span>
+                                </div>
+                                <div class="regla-content">
+                                    <div class="foto-container" id="container3">
+                                        <input type="file" id="foto3" accept="image/*" capture="environment" class="foto-input" data-regla="3">
+                                        <label for="foto3" class="foto-label">
+                                            <span class="foto-icon">📷</span>
+                                            <span>Tomar foto</span>
+                                        </label>
+                                        <img id="preview3" class="foto-preview">
+                                        <canvas id="canvas3" class="hidden"></canvas>
+                                    </div>
+                                    <div class="regla-check">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="cumple3" required>
+                                            <span>¿Cumple con la regla?</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="regla-item" data-regla="4">
+                                <div class="regla-header">
+                                    <span class="regla-number">4</span>
+                                    <div class="regla-title">
+                                        <h5>Puesta a Tierra y Cortocircuito</h5>
+                                        <p>Protección contra cargas inductivas</p>
+                                    </div>
+                                    <span class="regla-status" id="status4">⏳</span>
+                                </div>
+                                <div class="regla-content">
+                                    <div class="foto-container" id="container4">
+                                        <input type="file" id="foto4" accept="image/*" capture="environment" class="foto-input" data-regla="4">
+                                        <label for="foto4" class="foto-label">
+                                            <span class="foto-icon">📷</span>
+                                            <span>Tomar foto</span>
+                                        </label>
+                                        <img id="preview4" class="foto-preview">
+                                        <canvas id="canvas4" class="hidden"></canvas>
+                                    </div>
+                                    <div class="regla-check">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="cumple4" required>
+                                            <span>¿Cumple con la regla?</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="regla-item" data-regla="5">
+                                <div class="regla-header">
+                                    <span class="regla-number">5</span>
+                                    <div class="regla-title">
+                                        <h5>Delimitación y Señalización</h5>
+                                        <p>Zona de trabajo acotada</p>
+                                    </div>
+                                    <span class="regla-status" id="status5">⏳</span>
+                                </div>
+                                <div class="regla-content">
+                                    <div class="foto-container" id="container5">
+                                        <input type="file" id="foto5" accept="image/*" capture="environment" class="foto-input" data-regla="5">
+                                        <label for="foto5" class="foto-label">
+                                            <span class="foto-icon">📷</span>
+                                            <span>Tomar foto</span>
+                                        </label>
+                                        <img id="preview5" class="foto-preview">
+                                        <canvas id="canvas5" class="hidden"></canvas>
+                                    </div>
+                                    <div class="regla-check">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="cumple5" required>
+                                            <span>¿Cumple con la regla?</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="guardarBorrador" class="btn btn-secondary">Guardar Borrador</button>
+                        <button type="submit" class="btn btn-primary btn-large">Finalizar y Generar Informe</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section id="dashboardSupervisor" class="screen">
+            <div class="container">
+                <div class="welcome-card supervisor">
+                    <h3>Panel de Supervisión</h3>
+                    <p>Usuario: <strong id="supNombre"></strong></p>
+                </div>
+
+                <div class="card filtros-card">
+                    <h4>Filtros</h4>
+                    <div class="filtros-grid">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <select id="filtroSector" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="guardia_reclamos">Guardia de Reclamos</option>
+                                <option value="subterraneos">Subterráneos</option>
+                                <option value="redes_aereas">Redes Aéreas</option>
+                                <option value="distribucion_mt">Distribución MT</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha desde</label>
+                            <input type="date" id="filtroFechaDesde" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha hasta</label>
+                            <input type="date" id="filtroFechaHasta" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Empleado</label>
+                            <select id="filtroEmpleado" class="form-control">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="aplicarFiltros" class="btn btn-primary">Aplicar Filtros</button>
+                </div>
+
+                <div class="card stats-card">
+                    <h4>Estadísticas de Cumplimiento</h4>
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="chartCumplimiento"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="chartSectores"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>Órdenes de Trabajo</h4>
+                    <div id="ordenesSupervisorList" class="ordenes-supervisor-list">
+                        <p class="empty-state">Seleccione filtros para ver órdenes</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="toastContainer" class="toast-container"></div>
+
+        <div id="offlineIndicator" class="offline-indicator">
+            <span>🌐 Sin conexión - Modo offline activo</span>
+        </div>
+    </div>
+
+    <div id="ordenModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalle de Orden <span id="modalOT"></span></h3>
+                <button id="closeModal" class="btn-icon" style="color: white; font-size: 1.5rem;">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button id="descargarPDF" class="btn btn-primary">Descargar PDF</button>
+                <button id="cerrarModalBtn" class="btn btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Código JavaScript completo (continúa abajo)
+    </script>
+</body>
+</html>

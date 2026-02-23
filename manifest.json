@@ -1,0 +1,22 @@
+{
+  "name": "DPEC - Control 5 Reglas de Oro",
+  "short_name": "DPEC 5 Reglas",
+  "description": "Control de seguridad eléctrica DPEC",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1B5E20",
+  "theme_color": "#1B5E20",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/logo-dpec.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo-dpec.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
